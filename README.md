@@ -49,9 +49,9 @@ To **reset** back to the original 60 students (discarding anything added via Upl
 ### Setup
 
 ```bash
-git clone <PUBLIC-REPOSITORY-URL>
+git clone AdnanJami/lsh26-t032-p08
 cd lsh26-t032-p08
-pip install flask
+pip install requirements.txt
 python app.py
 ```
 
@@ -75,7 +75,7 @@ See [`LICENSES.md`](LICENSES.md) for third-party materials.
 
 | Registered member                        | GitHub username | Major contribution                | Evidence                |
 | ----------------------------------------- | ---------------- | ---------------------------------- | ------------------------ |
-| Abdullah Mohammad Muntasir Adnan Jami     | `AdnanJami`       | `<FILL IN — actual contribution>`  | `<FILL IN — file/commit>` |
+| Abdullah Mohammad Muntasir Adnan Jami     | `AdnanJami`       | `Made the grading engine, Flask routes, templates, and synthetic student dataset, including the 4 required edge-case students. Designed the CSV upload format and validation, and wrote the README and evaluation-manifest.json. `  | `<FILL IN — file/commit>` |
 
 Commit count alone does not represent contribution.
 

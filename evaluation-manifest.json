@@ -35,10 +35,9 @@
     {
       "registered_name": "Abdullah Mohammad Muntasir Adnan Jami",
       "github_username": "AdnanJami",
-      "major_contribution": "Brief description of personal contribution",
+      "major_contribution": "Made the grading engine, Flask routes, templates, and synthetic student dataset, including the 4 required edge-case students. Designed the CSV upload format and validation, and wrote the README and evaluation-manifest.json. ",
       "evidence_paths_or_commits": [
-        "src/example-file",
-        "<commit SHA if helpful>"
+        "bec9701283e121412f706135ae2b535c0ae76b7d"
       ]
     }
   ],
@@ -55,7 +54,6 @@
   "known_limitations": [
     "Absence in only the practical part of a practical subject (see major_design_decisions) is an interpretive reading of R-12, not an explicitly confirmed one — worth a judge's ruling if it matters to scoring.",
     "No persistence layer or database; marks live in data.py and are regenerated identically on every restart from a fixed seed. There is no teacher-facing form to enter or correct marks.",
-    "No persistence: uploaded or edited marks live only in server memory and are lost on restart (by design, so judges can always reset to the seeded fixture — see sample_data.reset_instructions above).",
     "No authentication on /upload or /student/<id>/edit — anyone with the URL can add or change marks; acceptable for a single-judge/single-session demo but not production-ready.",
     "CSV parsing expects a well-formed header row with the exact expected column names (case/space/hyphen-insensitive); it doesn't attempt to auto-detect delimiters or alternate encodings beyond UTF-8/UTF-8-BOM.",
     "app.secret_key is a hardcoded development placeholder, used only to enable flash messages — not suitable for a real deployment."
