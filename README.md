@@ -49,9 +49,20 @@ To **reset** back to the original 60 students (discarding anything added via Upl
 ### Setup
 
 ```bash
-git clone AdnanJami/lsh26-t032-p08
+git clone https://github.com/AdnanJami/lsh26-t032-p08.git
+
 cd lsh26-t032-p08
-pip install requirements.txt
+
+python -m venv venv
+
+# Windows
+venv\Scripts\activate
+
+# macOS/Linux
+# source venv/bin/activate
+
+pip install -r requirements.txt
+
 python app.py
 ```
 
