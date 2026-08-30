@@ -1,15 +1,5 @@
 """
 Grading engine for the Bogura secondary school result system.
-
-Every function here returns not just a number but the *rule* that produced
-it, because the whole point of the tool (per the problem statement) is that
-a teacher can see exactly which rule fired for which subject before results
-go out.
-
-Rule references (R-10, R-11, R-12, R-13, R-29) are the published
-clarification codes from the problem statement. They are attached to the
-trace verbatim so a judge — or a teacher — can check the output against the
-spec line by line.
 """
 
 from dataclasses import dataclass, field
@@ -24,8 +14,6 @@ PRACTICAL_PASS = 8
 
 
 def mark_to_grade_point(mark: float) -> float:
-    """The subject grading scale, applied to a mark out of 100 (or a
-    theory+practical combined mark, which is also out of 100)."""
     if mark >= 80:
         return 5.0
     if mark >= 70:
@@ -42,7 +30,6 @@ def mark_to_grade_point(mark: float) -> float:
 
 
 def letter_grade(gpa: float) -> str:
-    """R-10: letter grade from the final GPA."""
     if gpa >= 5.00:
         return "A+"
     if gpa >= 4.00:
@@ -59,7 +46,6 @@ def letter_grade(gpa: float) -> str:
 
 
 def round2(value: float) -> float:
-    """Round-half-up to 2dp, as GPA figures published to students must be."""
     return float(Decimal(str(value)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
 
 
@@ -74,21 +60,12 @@ class SubjectResult:
     single_mark: Optional[float] = None
     combined_mark: Optional[float] = None
     grade_point: float = 0.0
-    status: str = "OK"          # OK, FAIL, AB
+    status: str = "OK"
     rule: str = ""
     note: str = ""
 
 
 def evaluate_subject(subject: dict, entry: dict) -> SubjectResult:
-    """Evaluate one student's one subject and return the full trace for it.
-
-    `entry` is one of:
-      {"mark": 62}                        - ordinary subject, present
-      {"mark": None}                      - ordinary subject, absent
-      {"theory": 40, "practical": 12}     - practical subject, present
-      {"theory": None, "practical": 12}   - practical subject, absent (theory)
-      {"theory": 40, "practical": None}   - practical subject, absent (practical)
-    """
     res = SubjectResult(
         code=subject["code"],
         name=subject["name"],
@@ -140,7 +117,6 @@ def evaluate_subject(subject: dict, entry: dict) -> SubjectResult:
         )
         return res
 
-    # Ordinary (non-practical) subject
     mark = entry.get("mark")
     res.single_mark = mark
     if mark is None:
@@ -166,10 +142,10 @@ class StudentResult:
     student_id: str
     name: str
     class_name: str
-    subjects: list = field(default_factory=list)   # list[SubjectResult]
+    subjects: list = field(default_factory=list)
     compulsory_fail: bool = False
-    raw_gpa: float = 0.0        # the "uncancelled" average, always computed
-    gpa: float = 0.0            # the published GPA (0.00 if compulsory_fail)
+    raw_gpa: float = 0.0
+    gpa: float = 0.0
     letter: str = "F"
     optional_gp: float = 0.0
     optional_bonus: float = 0.0
@@ -180,8 +156,6 @@ class StudentResult:
 
 def evaluate_student(student_id: str, name: str, class_name: str,
                       subjects: list, marks: dict) -> StudentResult:
-    """subjects: the roster's list of subject dicts (6 compulsory + 1 optional).
-    marks: {subject_code: entry_dict} for this student."""
     result = StudentResult(student_id=student_id, name=name, class_name=class_name)
 
     compulsory_gps = []
@@ -203,7 +177,6 @@ def evaluate_student(student_id: str, name: str, class_name: str,
             result.on_absent_list = True
         if sres.is_practical and sres.status == "FAIL" and sres.practical_mark is not None \
                 and sres.practical_mark < PRACTICAL_PASS:
-            # R-29: numeric practical fail, not an absence
             result.on_practical_fail_list = True
 
     result.optional_gp = optional_result.grade_point if optional_result else 0.0

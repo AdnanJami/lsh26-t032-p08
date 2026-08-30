@@ -65,69 +65,60 @@ def _full_marks(defaults):
 def _edge_case_students():
     students = []
 
-    # 1. High average, one compulsory subject fails outright -> overall F,
-    #    but the uncancelled average is strong. (R-13)
     students.append({
         "id": "9A-01", "name": "Rafiul Islam", "class_name": "Class 9A",
         "marks": _full_marks({
             "BAN": _mk_ordinary(88), "ENG": _mk_ordinary(85), "MATH": _mk_ordinary(90),
-            "SCI": _mk_practical(60, 20), "REL": _mk_ordinary(30),  # fails, below 33
+            "SCI": _mk_practical(60, 20), "REL": _mk_ordinary(30),
             "ICT": _mk_practical(55, 15), "HMATH": _mk_ordinary(78),
         }),
     })
 
-    # 2. Practical fail with a passing theory mark.
     students.append({
         "id": "9A-02", "name": "Mim Akter", "class_name": "Class 9A",
         "marks": _full_marks({
             "BAN": _mk_ordinary(70), "ENG": _mk_ordinary(65), "MATH": _mk_ordinary(72),
-            "SCI": _mk_practical(60, 5),  # theory passes (60>=25), practical fails (5<8)
+            "SCI": _mk_practical(60, 5),
             "REL": _mk_ordinary(68), "ICT": _mk_practical(50, 18), "HMATH": _mk_ordinary(60),
         }),
     })
 
-    # 3. Optional subject below the point where it helps (GP <= 2 -> bonus 0).
     students.append({
         "id": "9A-03", "name": "Tanvir Hasan", "class_name": "Class 9A",
         "marks": _full_marks({
             "BAN": _mk_ordinary(75), "ENG": _mk_ordinary(72), "MATH": _mk_ordinary(80),
             "SCI": _mk_practical(55, 15), "REL": _mk_ordinary(66),
-            "ICT": _mk_practical(50, 12), "HMATH": _mk_ordinary(45),  # GP 2.0, contributes 0
+            "ICT": _mk_practical(50, 12), "HMATH": _mk_ordinary(45),
         }),
     })
 
-    # 4. Absent in one compulsory (non-practical) subject -> AB, overall F.
     students.append({
         "id": "9A-04", "name": "Sadia Rahman", "class_name": "Class 9A",
         "marks": _full_marks({
-            "BAN": _mk_ordinary(82), "ENG": _mk_ordinary(None),  # absent
+            "BAN": _mk_ordinary(82), "ENG": _mk_ordinary(None),
             "MATH": _mk_ordinary(77), "SCI": _mk_practical(58, 14),
             "REL": _mk_ordinary(70), "ICT": _mk_practical(50, 10), "HMATH": _mk_ordinary(80),
         }),
     })
 
-    # 5. Absent only in the optional subject -> contributes 0, does NOT fail
-    #    the overall result, appears on optional + absent lists.
     students.append({
         "id": "9A-05", "name": "Arif Chowdhury", "class_name": "Class 9A",
         "marks": _full_marks({
             "BAN": _mk_ordinary(68), "ENG": _mk_ordinary(71), "MATH": _mk_ordinary(64),
             "SCI": _mk_practical(50, 12), "REL": _mk_ordinary(60),
-            "ICT": _mk_practical(45, 10), "HMATH": _mk_ordinary(None),  # absent, optional
+            "ICT": _mk_practical(45, 10), "HMATH": _mk_ordinary(None),
         }),
     })
 
-    # 6. Absent in only the practical part of a practical subject.
     students.append({
         "id": "9B-01", "name": "Nusrat Jahan", "class_name": "Class 9B",
         "marks": _full_marks({
             "BAN": _mk_ordinary(74), "ENG": _mk_ordinary(69), "MATH": _mk_ordinary(71),
-            "SCI": _mk_practical(52, None),  # theory present, practical absent
+            "SCI": _mk_practical(52, None),
             "REL": _mk_ordinary(65), "ICT": _mk_practical(48, 14), "HMATH": _mk_ordinary(70),
         }),
     })
 
-    # 7. Perfect A+ student — top boundary.
     students.append({
         "id": "9B-02", "name": "Farhan Kabir", "class_name": "Class 9B",
         "marks": _full_marks({
@@ -137,15 +128,12 @@ def _edge_case_students():
         }),
     })
 
-    # 8. Sits exactly on a letter-grade boundary: GPA 3.50 (A-).
-    #    All six compulsory subjects at grade point 3.5 (mark 60-69),
-    #    optional contributes 0 -> GPA = (6*3.5 + 0)/6 = 3.50 exactly.
     students.append({
         "id": "9B-03", "name": "Jannatul Ferdous", "class_name": "Class 9B",
         "marks": _full_marks({
             "BAN": _mk_ordinary(65), "ENG": _mk_ordinary(60), "MATH": _mk_ordinary(69),
             "SCI": _mk_practical(50, 15), "REL": _mk_ordinary(62),
-            "ICT": _mk_practical(45, 15), "HMATH": _mk_ordinary(40),  # GP 2.0 -> bonus 0
+            "ICT": _mk_practical(45, 15), "HMATH": _mk_ordinary(40),
         }),
     })
 
@@ -153,7 +141,6 @@ def _edge_case_students():
 
 
 def _random_ordinary(rng):
-    # Weighted so most students pass, with occasional low/failing marks.
     band = rng.choices(
         ["fail", "low", "mid", "high"],
         weights=[8, 15, 47, 30],
@@ -168,14 +155,14 @@ def _random_ordinary(rng):
     return rng.randint(80, 100)
 
 
+THEORY_MAX_LOCAL = 75
+
+
 def _random_practical(rng):
     theory = min(THEORY_MAX_LOCAL, max(0, _random_ordinary(rng) * 75 // 100 + rng.randint(-3, 3)))
     theory = max(0, min(75, theory))
     practical = rng.randint(4, 25)
     return theory, practical
-
-
-THEORY_MAX_LOCAL = 75
 
 
 def _generate_random_students(rng, count, start_index, class_name, class_prefix):
@@ -191,11 +178,9 @@ def _generate_random_students(rng, count, start_index, class_name, class_prefix)
                 break
         marks = {}
         for s in SUBJECTS:
-            # Small chance of an absence, a bit rarer than a low mark.
             absent = rng.random() < 0.04
             if s["practical"]:
                 if absent:
-                    # Randomly decide which part is missing, or both.
                     which = rng.choice(["theory", "practical", "both"])
                     t = None if which in ("theory", "both") else _random_practical(rng)[0]
                     p = None if which in ("practical", "both") else _random_practical(rng)[1]
@@ -214,7 +199,6 @@ def build_roster_and_students(total_students=60, seed=42):
     rng = random.Random(seed)
     students = _edge_case_students()
 
-    # 4 edge-case students already sit in 9A (ids 01-05, that's 5) and 3 in 9B.
     existing_9a = sum(1 for s in students if s["class_name"] == "Class 9A")
     existing_9b = sum(1 for s in students if s["class_name"] == "Class 9B")
 

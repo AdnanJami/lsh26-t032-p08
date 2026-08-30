@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Edit {{ s.name }}{% endblock %}
+{% block content %}
+
+<a href="{{ url_for('student_page', student_id=s.student_id) }}" class="back-link">&larr; Back to marksheet</a>
+
+<h1 style="font-family:var(--font-display);color:var(--paper);margin:0.4rem 0 1rem;">Edit marks — {{ s.name }}</h1>
+
+<section class="ledger-card">
+  <form method="post" class="edit-form">
+    <div class="edit-grid">
+      <label class="field">
+        <span>Name</span>
+        <input type="text" name="name" value="{{ form.name if form else s.name }}">
+      </label>
+      <label class="field">
+        <span>Class</span>
+        <input type="text" name="class_name" value="{{ form.class_name if form else s.class_name }}">
+      </label>
+    </div>
+
+    <table class="ledger-table">
+      <thead><tr><th>Subject</th><th>Mark(s)</th><th>Range</th></tr></thead>
+      <tbody>
+        {% for subject in subjects %}
+        {% set code = subject.code %}
+        {% set entry = marks[code] %}
+        <tr>
+          <td>{{ subject.name }}{% if subject.optional %} <span class="tag">optional</span>{% endif %}</td>
+          <td>
+            {% if subject.practical %}
+              <label class="inline-field">
+                theory
+                <input type="text" name="{{ code }}_theory"
+                       value="{{ form[code + '_theory'] if form else (entry.theory if entry.theory is not none else 'AB') }}">
+              </label>
+              <label class="inline-field">
+                practical
+                <input type="text" name="{{ code }}_practical"
+                       value="{{ form[code + '_practical'] if form else (entry.practical if entry.practical is not none else 'AB') }}">
+              </label>
+            {% else %}
+              <input type="text" name="{{ code }}"
+                     value="{{ form[code] if form else (entry.mark if entry.mark is not none else 'AB') }}">
+            {% endif %}
+          </td>
+          <td class="hint">
+            {% if subject.practical %}
+              0&ndash;75 / 0&ndash;25, or AB
+            {% else %}
+              0&ndash;100, or AB
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <div style="margin-top:1rem;">
+      <button type="submit" class="btn btn-primary">Save changes</button>
+    </div>
+  </form>
+</section>
+
+{% endblock %}

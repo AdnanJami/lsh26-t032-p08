@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block title %}Upload marks{% endblock %}
+{% block content %}
+
+<h1 class="checklist-intro" style="margin-bottom:0;"><span style="font-family:var(--font-display);color:var(--paper);">Upload a marks sheet</span></h1>
+
+<section class="ledger-card">
+  <h2>Format</h2>
+  <p>
+    CSV with a header row. Required columns are <code>student_id</code>,
+    <code>name</code>, <code>class_name</code>, then one column per subject
+    &mdash; two columns (<code>&lt;code&gt;_theory</code> /
+    <code>&lt;code&gt;_practical</code>) for a practical subject, one column
+    for an ordinary subject. Column order doesn't matter but every column
+    below must be present.
+  </p>
+  <pre class="code-block">{{ header_line }}</pre>
+
+  <table class="ledger-table">
+    <thead><tr><th>Subject</th><th>Column(s)</th><th>Accepted values</th></tr></thead>
+    <tbody>
+      {% for sub in subjects %}
+      <tr>
+        <td>{{ sub.name }}{% if sub.optional %} <span class="tag">optional</span>{% endif %}</td>
+        <td class="mono">
+          {% if sub.practical %}
+            {{ sub.code }}_theory, {{ sub.code }}_practical
+          {% else %}
+            {{ sub.code }}
+          {% endif %}
+        </td>
+        <td>
+          {% if sub.practical %}
+            whole numbers 0&ndash;75 (theory) / 0&ndash;25 (practical), or <span class="mono">AB</span>
+          {% else %}
+            whole numbers 0&ndash;100, or <span class="mono">AB</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <ul>
+    <li>Use the literal text <span class="mono">AB</span> (any case) for an absent student/part &mdash; an empty cell is rejected, not treated as AB.</li>
+    <li>A student_id that already exists in the system is rejected; edit that student from their marksheet instead.</li>
+    <li>Rows are validated independently: one bad row does not block the rest of the file from being graded.</li>
+  </ul>
+</section>
+
+<section class="ledger-card">
+  <h2>Upload</h2>
+  <form method="post" enctype="multipart/form-data" class="upload-form">
+    <label class="field">
+      <span>CSV file</span>
+      <input type="file" name="csv_file" accept=".csv,text/csv">
+    </label>
+    <div class="or-divider">or paste CSV text</div>
+    <label class="field">
+      <textarea name="pasted_csv" rows="8" placeholder="{{ header_line }}&#10;9C-01,New Student,Class 9C,70,65,72,60,20,68,55,15,78"></textarea>
+    </label>
+    <button type="submit" class="btn btn-primary">Validate &amp; add</button>
+  </form>
+</section>
+
+{% if accepted is not none %}
+<section class="ledger-card">
+  <h2>Result</h2>
+
+  {% if accepted %}
+  <h3 class="hint" style="text-transform:uppercase;letter-spacing:.04em;margin-bottom:0.4rem;">Accepted ({{ accepted|length }})</h3>
+  <table class="ledger-table">
+    <thead><tr><th>Roll</th><th>Name</th><th>Class</th><th></th></tr></thead>
+    <tbody>
+      {% for rec in accepted %}
+      <tr>
+        <td class="mono">{{ rec.id }}</td>
+        <td>{{ rec.name }}</td>
+        <td>{{ rec.class_name }}</td>
+        <td><a href="{{ url_for('student_page', student_id=rec.id) }}">View</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  {% if rejected %}
+  <h3 class="hint" style="text-transform:uppercase;letter-spacing:.04em;margin:1rem 0 0.4rem;">Rejected ({{ rejected|length }})</h3>
+  <table class="ledger-table">
+    <thead><tr><th>Row</th><th>Student ID</th><th>Reason</th></tr></thead>
+    <tbody>
+      {% for rej in rejected %}
+      <tr class="row-fail">
+        <td>{{ rej.row }}</td>
+        <td>{{ rej.student_id }}</td>
+        <td>{{ rej.reason }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  {% if not accepted and not rejected %}
+  <p class="check-list-empty" style="color:var(--ink-soft);opacity:1;">No data rows found in the file.</p>
+  {% endif %}
+</section>
+{% endif %}
+
+{% endblock %}

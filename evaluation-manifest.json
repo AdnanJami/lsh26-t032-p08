@@ -33,24 +33,32 @@
   },
   "team_members": [
     {
-      "registered_name": "<FILL IN — registered name>",
-      "github_username": "<FILL IN — github username>",
-      "major_contribution": "<FILL IN>",
+      "registered_name": "Abdullah Mohammad Muntasir Adnan Jami",
+      "github_username": "AdnanJami",
+      "major_contribution": "Brief description of personal contribution",
       "evidence_paths_or_commits": [
-        "<FILL IN — file paths or commit SHAs>"
+        "src/example-file",
+        "<commit SHA if helpful>"
       ]
     }
   ],
   "major_design_decisions": [
+        "Kept all graded results and raw marks in server-side in-memory dicts (RESULTS, RAW_MARKS) rather than a database, since the roster is small, judging is a single-session activity, and it keeps the whole system inspectable as three plain Python modules with no migrations or ORM.",
+    "Derived the CSV upload format (required columns, per-column value ranges) programmatically from the live subject roster instead of hardcoding it, so the upload page's documented format and the parser's validation can never fall out of sync if the roster changes.",
+    "AB (absent) is only ever accepted as the literal text 'AB' — an empty cell is always rejected rather than silently treated as an absence — to stop a blank spreadsheet cell from accidentally failing a student.",
+    "Every SubjectResult carries the rule code (e.g. R-11, R-12, R-13) and a plain-language note explaining exactly why a mark produced the grade it did, so the individual marksheet doubles as an audit trail rather than just a final number.",
     "GPA is rounded with Decimal + ROUND_HALF_UP to 2dp rather than Python's built-in round(), so boundary GPAs (e.g. exactly 3.50) land on the correct letter grade deterministically rather than depending on binary float rounding.",
     "The 'uncancelled average' required by R-13 is computed for every student, not only failing ones, so the same code path produces both the published GPA and the audit figure — there is no separate 'what if' calculation that could drift out of sync.",
     "Absence in only the practical half of a practical subject (theory present, practical blank) is treated as an absence for the whole subject, since R-12 does not split theory/practical explicitly. This is flagged as an interpretive call, not a certainty, in known_limitations below.",
     "All 60 students are evaluated once at process start-up and held in memory, since this is a read-only judging/demo tool rather than a live data-entry system; there is no need to recompute per request."
   ],
   "known_limitations": [
-    "The two bonus features from the problem statement are not implemented: pasting/uploading a marks sheet with per-row rejection reasons, and a printable individual marksheet. Effort was prioritised on the four required items instead, per the problem statement's own guidance to only attempt bonus items once those work.",
     "Absence in only the practical part of a practical subject (see major_design_decisions) is an interpretive reading of R-12, not an explicitly confirmed one — worth a judge's ruling if it matters to scoring.",
-    "No persistence layer or database; marks live in data.py and are regenerated identically on every restart from a fixed seed. There is no teacher-facing form to enter or correct marks."
+    "No persistence layer or database; marks live in data.py and are regenerated identically on every restart from a fixed seed. There is no teacher-facing form to enter or correct marks.",
+    "No persistence: uploaded or edited marks live only in server memory and are lost on restart (by design, so judges can always reset to the seeded fixture — see sample_data.reset_instructions above).",
+    "No authentication on /upload or /student/<id>/edit — anyone with the URL can add or change marks; acceptable for a single-judge/single-session demo but not production-ready.",
+    "CSV parsing expects a well-formed header row with the exact expected column names (case/space/hyphen-insensitive); it doesn't attempt to auto-detect delimiters or alternate encodings beyond UTF-8/UTF-8-BOM.",
+    "app.secret_key is a hardcoded development placeholder, used only to enable flash messages — not suitable for a real deployment."
   ],
   "ai_tools_used": [
     {

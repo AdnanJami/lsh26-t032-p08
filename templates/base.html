@@ -9,7 +9,8 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-<div class="spine">
+{% block nav %}
+<div class="spine no-print">
   <div class="spine-seal">R</div>
   <div class="spine-title">
     <span class="spine-eyebrow">Bogura Secondary School</span>
@@ -18,12 +19,24 @@
   <nav class="spine-nav">
     <a href="{{ url_for('index') }}" class="{{ 'active' if active=='index' else '' }}">Ledger</a>
     <a href="{{ url_for('checklist') }}" class="{{ 'active' if active=='checklist' else '' }}">Office checklist</a>
+    <a href="{{ url_for('upload') }}" class="{{ 'active' if active=='upload' else '' }}">Upload marks</a>
   </nav>
 </div>
+{% endblock %}
 <main class="page">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="flash-stack no-print">
+      {% for category, message in messages %}
+      <div class="flash flash-{{ category }}">{{ message }}</div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  {% endwith %}
+
   {% block content %}{% endblock %}
 </main>
-<footer class="page-footer">
+<footer class="page-footer no-print">
   Grading rules applied exactly as published for this problem. Every figure on this page is computed live from the marks below it — nothing is hand-entered.
 </footer>
 </body>

@@ -1,21 +1,34 @@
-from flask import Flask, render_template, abort
+from flask import Flask, render_template, abort, request, redirect, url_for, flash
 
 from data import build_roster_and_students
-from grading import evaluate_student
+from grading import evaluate_student, THEORY_MAX, PRACTICAL_MAX
+from upload import parse_and_validate, expected_header
 
 app = Flask(__name__)
+app.secret_key = "dev-only-secret-key-change-me"  # only used to flash messages
 
 SUBJECTS, RAW_STUDENTS = build_roster_and_students(total_students=60, seed=42)
 
-# Evaluate every student once at startup; this is a read-heavy demo tool,
-# not a system taking live data-entry, so there's no need to recompute
-# per-request.
+# RAW_MARKS keeps the original entry dicts per student (subject_code -> entry)
+# so the edit form can be pre-filled and so uploads/edits can be re-graded
+# without needing to re-derive marks from a StudentResult.
+RAW_MARKS = {}
 RESULTS = {}
-for rec in RAW_STUDENTS:
-    result = evaluate_student(rec["id"], rec["name"], rec["class_name"], SUBJECTS, rec["marks"])
-    RESULTS[rec["id"]] = result
 
-CLASS_NAMES = sorted({r.class_name for r in RESULTS.values()})
+
+def _grade_and_store(student_id, name, class_name, marks):
+    """(Re)compute a student's result and store both the raw marks and the
+    graded result. Used at startup, after an upload, and after an edit."""
+    RAW_MARKS[student_id] = marks
+    RESULTS[student_id] = evaluate_student(student_id, name, class_name, SUBJECTS, marks)
+
+
+for rec in RAW_STUDENTS:
+    _grade_and_store(rec["id"], rec["name"], rec["class_name"], rec["marks"])
+
+
+def _class_names():
+    return sorted({r.class_name for r in RESULTS.values()})
 
 
 class ClassView:
@@ -38,7 +51,6 @@ class ClassSummary:
         self.distribution = [(letter, counts[letter]) for letter in order]
         self._max_count = max(counts.values()) if counts else 1
 
-        # Subject that failed the most students (FAIL or AB counts as failing it).
         fail_tally = {}
         for s in students:
             for sub in s.subjects:
@@ -59,7 +71,7 @@ class ClassSummary:
 def index():
     classes = []
     summaries = []
-    for cname in CLASS_NAMES:
+    for cname in _class_names():
         students = [r for r in RESULTS.values() if r.class_name == cname]
         classes.append(ClassView(cname, students))
         summaries.append(ClassSummary(cname, students))
@@ -81,6 +93,134 @@ def student_page(student_id):
         active="student",
         compulsory_gp_list=compulsory_gp_list,
         compulsory_sum=compulsory_sum,
+        printable=False,
+    )
+
+
+@app.route("/student/<student_id>/print")
+def student_print(student_id):
+    """Same marksheet, rendered without navigation chrome and with
+    print-friendly styling so it can go straight to Ctrl+P / Cmd+P."""
+    s = RESULTS.get(student_id)
+    if s is None:
+        abort(404)
+    compulsory_gp_list = " + ".join(
+        f"{sub.grade_point:.1f}" for sub in s.subjects if not sub.is_optional
+    )
+    compulsory_sum = sum(sub.grade_point for sub in s.subjects if not sub.is_optional)
+    return render_template(
+        "student.html",
+        s=s,
+        active="student",
+        compulsory_gp_list=compulsory_gp_list,
+        compulsory_sum=compulsory_sum,
+        printable=True,
+    )
+
+
+@app.route("/student/<student_id>/edit", methods=["GET", "POST"])
+def student_edit(student_id):
+    s = RESULTS.get(student_id)
+    if s is None:
+        abort(404)
+    marks = RAW_MARKS[student_id]
+
+    if request.method == "POST":
+        new_marks = {}
+        errors = []
+        for subject in SUBJECTS:
+            code = subject["code"]
+            if subject["practical"]:
+                t_raw = request.form.get(f"{code}_theory", "").strip()
+                p_raw = request.form.get(f"{code}_practical", "").strip()
+                t = _parse_form_mark(t_raw, f"{subject['name']} (theory)", 0, THEORY_MAX, errors)
+                p = _parse_form_mark(p_raw, f"{subject['name']} (practical)", 0, PRACTICAL_MAX, errors)
+                new_marks[code] = {"theory": t, "practical": p}
+            else:
+                m_raw = request.form.get(code, "").strip()
+                m = _parse_form_mark(m_raw, subject["name"], 0, 100, errors)
+                new_marks[code] = {"mark": m}
+
+        new_name = request.form.get("name", "").strip()
+        new_class = request.form.get("class_name", "").strip()
+        if not new_name:
+            errors.append("Name cannot be empty.")
+        if not new_class:
+            errors.append("Class cannot be empty.")
+
+        if errors:
+            for e in errors:
+                flash(e, "error")
+            return render_template(
+                "edit.html", s=s, subjects=SUBJECTS, marks=marks,
+                active="student", form=request.form,
+            )
+
+        _grade_and_store(student_id, new_name, new_class, new_marks)
+        flash(f"Saved changes for {new_name}.", "success")
+        return redirect(url_for("student_page", student_id=student_id))
+
+    return render_template(
+        "edit.html", s=s, subjects=SUBJECTS, marks=marks, active="student", form=None,
+    )
+
+
+def _parse_form_mark(raw, label, lo, hi, errors):
+    """Edit-form version of the same rule an uploaded CSV cell follows:
+    blank means AB is intended only via the explicit AB checkbox pattern
+    isn't used here — instead an empty box means 'still AB' if it was AB
+    before is NOT assumed; empty box always means AB for simplicity."""
+    if raw == "" or raw.upper() == "AB":
+        return None
+    try:
+        value = int(raw)
+    except ValueError:
+        errors.append(f"{label}: '{raw}' is not a whole number or AB.")
+        return None
+    if value < lo or value > hi:
+        errors.append(f"{label}: {value} is out of range ({lo}-{hi}).")
+        return None
+    return value
+
+
+@app.route("/upload", methods=["GET", "POST"])
+def upload():
+    header = expected_header(SUBJECTS)
+    header_line = ",".join(header)
+
+    if request.method == "GET":
+        return render_template(
+            "upload.html", active="upload", header_line=header_line,
+            subjects=SUBJECTS, accepted=None, rejected=None,
+        )
+
+    text = ""
+    uploaded = request.files.get("csv_file")
+    if uploaded and uploaded.filename:
+        text = uploaded.read().decode("utf-8-sig", errors="replace")
+    else:
+        text = request.form.get("pasted_csv", "")
+
+    if not text.strip():
+        flash("Please choose a CSV file or paste marks-sheet text.", "error")
+        return render_template(
+            "upload.html", active="upload", header_line=header_line,
+            subjects=SUBJECTS, accepted=None, rejected=None,
+        )
+
+    accepted, rejected = parse_and_validate(text, SUBJECTS, existing_ids=RESULTS.keys())
+
+    for rec in accepted:
+        _grade_and_store(rec["id"], rec["name"], rec["class_name"], rec["marks"])
+
+    if accepted:
+        flash(f"Added {len(accepted)} student(s).", "success")
+    if rejected:
+        flash(f"{len(rejected)} row(s) rejected — see details below.", "error")
+
+    return render_template(
+        "upload.html", active="upload", header_line=header_line,
+        subjects=SUBJECTS, accepted=accepted, rejected=rejected,
     )
 
 

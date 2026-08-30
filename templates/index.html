@@ -38,14 +38,15 @@
 {% for cls in classes %}
 <section class="class-block">
   <h2 class="ledger-heading">{{ cls.name }}</h2>
-  <table class="ledger-table">
+  <table class="ledger-table roster-table">
     <thead>
       <tr>
-        <th>Roll</th>
-        <th>Name</th>
-        <th>GPA</th>
-        <th>Grade</th>
-        <th>Flags</th>
+        <th class="col-roll">Roll</th>
+        <th class="col-name">Name</th>
+        <th class="col-gpa">GPA</th>
+        <th class="col-grade">Grade</th>
+        <th class="col-flags">Flags</th>
+        <th class="col-actions">Action</th>
       </tr>
     </thead>
     <tbody>
@@ -55,10 +56,17 @@
         <td><a href="{{ url_for('student_page', student_id=s.student_id) }}">{{ s.name }}</a></td>
         <td class="mono">{{ '%.2f'|format(s.gpa) }}</td>
         <td><span class="grade-pill grade-{{ s.letter|replace('+','plus')|replace('-','minus') }}">{{ s.letter }}</span></td>
-        <td class="flags">
-          {% if s.on_absent_list %}<span class="flag flag-absent">AB</span>{% endif %}
-          {% if s.on_practical_fail_list %}<span class="flag flag-practical">PR</span>{% endif %}
-          {% if s.on_optional_list %}<span class="flag flag-optional">OPT</span>{% endif %}
+        <td>
+          <div class="flags">
+            {% if s.on_absent_list %}<span class="flag flag-absent">AB</span>{% endif %}
+            {% if s.on_practical_fail_list %}<span class="flag flag-practical">PR</span>{% endif %}
+            {% if s.on_optional_list %}<span class="flag flag-optional">OPT</span>{% endif %}
+          </div>
+        </td>
+        <td class="col-actions">
+          <div class="row-actions">
+            <a href="{{ url_for('student_edit', student_id=s.student_id) }}">Edit</a>
+          </div>
         </td>
       </tr>
       {% endfor %}

@@ -162,7 +162,11 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--gold); outline-
 }
 .grade-F { background: rgba(163,49,43,0.15); color: var(--fail); }
 
-.flags { display: flex; gap: 0.3rem; }
+.flags {
+  display: flex;
+  gap: 0.3rem;
+  align-items: center;
+}
 .flag {
   font-family: var(--font-mono);
   font-size: 0.68rem;
@@ -175,8 +179,65 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--gold); outline-
 .flag-practical { color: #7A4A1E; }
 .flag-optional { color: var(--gold); }
 
+.row-actions {
+  display: inline-flex;
+  gap: 0.6rem;
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+
+/* Roster table: pin the narrow columns so Name absorbs the leftover
+   width instead of the empty action-column header stretching. */
+.roster-table {
+  table-layout: fixed;
+}
+
+.roster-table .col-roll {
+  width: 5.5rem;
+}
+
+.roster-table .col-name {
+  width: auto;
+}
+
+.roster-table .col-gpa {
+  width: 4.5rem;
+}
+
+.roster-table .col-grade {
+  width: 4.5rem;
+}
+
+.roster-table .col-flags {
+  width: 7rem;
+}
+
+.roster-table .col-actions {
+  width: 5rem;
+}
+
+.roster-table td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Keep the action link in its own column */
+.roster-table .row-actions {
+  overflow: visible;
+  white-space: nowrap;
+  text-overflow: clip;
+}
+
 /* ---------- Student trace page ---------- */
 .back-link { color: var(--paper); opacity: 0.8; font-size: 0.85rem; display: inline-block; margin-bottom: 1rem; }
+
+.student-actions {
+  display: flex;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
 
 .student-head {
   background: var(--paper);
@@ -300,6 +361,99 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--gold); outline-
 }
 .check-list-rule { color: var(--paper); opacity: 0.75; font-size: 0.85rem; margin: -0.3rem 0 0.7rem; }
 .check-list-empty { color: var(--paper); opacity: 0.6; font-style: italic; }
+
+/* ---------- Flash messages ---------- */
+.flash-stack { margin-bottom: 1rem; display: flex; flex-direction: column; gap: 0.5rem; }
+.flash {
+  padding: 0.65rem 1rem;
+  border-radius: 4px;
+  font-size: 0.88rem;
+  background: var(--paper);
+}
+.flash-success { border-left: 4px solid var(--pass); }
+.flash-error { border-left: 4px solid var(--fail); }
+
+/* ---------- Upload page ---------- */
+.ledger-card {
+  background: var(--paper);
+  border-radius: 6px;
+  padding: 1.1rem 1.25rem 1.3rem;
+  box-shadow: 0 2px 0 rgba(0,0,0,0.12);
+  margin-top: 0.75rem;
+}
+.ledger-card h2 {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  margin: 0 0 0.75rem;
+  color: var(--cover);
+}
+.ledger-card p { line-height: 1.55; font-size: 0.9rem; }
+.ledger-card ul { font-size: 0.86rem; color: var(--ink-soft); line-height: 1.6; padding-left: 1.2rem; }
+.code-block {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  background: rgba(0,0,0,0.06);
+  border: 1px solid var(--paper-line);
+  border-radius: 4px;
+  padding: 0.7rem 0.9rem;
+  overflow-x: auto;
+  white-space: pre;
+}
+.upload-form { display: flex; flex-direction: column; gap: 0.9rem; max-width: 640px; }
+.field { display: flex; flex-direction: column; gap: 0.3rem; }
+.field span { font-size: 0.82rem; color: var(--ink-soft); font-weight: 600; }
+.field input, .field textarea {
+  border: 1px solid var(--paper-line);
+  border-radius: 4px;
+  padding: 0.55rem 0.7rem;
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  background: #fffdf8;
+}
+.field textarea { font-family: var(--font-mono); font-size: 0.82rem; }
+.or-divider { font-size: 0.8rem; color: var(--ink-soft); text-align: center; }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--paper-line);
+  background: var(--paper);
+  color: var(--ink);
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.btn:hover { text-decoration: none; background: #efe6cc; }
+.btn-primary { background: var(--gold); border-color: var(--gold); color: var(--cover-dark); }
+.btn-primary:hover { background: var(--gold-soft); }
+
+/* ---------- Edit page ---------- */
+.edit-grid { display: flex; gap: 1rem; margin-bottom: 1.1rem; max-width: 520px; flex-wrap: wrap; }
+.edit-grid .field { flex: 1; min-width: 200px; }
+.inline-field { margin-right: 1rem; font-size: 0.82rem; color: var(--ink-soft); }
+.inline-field input { margin-left: 0.3rem; width: 4.5rem; }
+.hint { font-size: 0.78rem; color: var(--ink-soft); }
+.tag {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--ink-soft);
+  border: 1px solid var(--paper-line);
+  border-radius: 3px;
+  padding: 0.03rem 0.3rem;
+  margin-left: 0.4rem;
+}
+
+/* ---------- Print (printable individual marksheet) ---------- */
+@media print {
+  .no-print { display: none !important; }
+  body { background: #fff; }
+  .page { max-width: 100%; padding: 0; margin: 0; }
+  .student-head, .trace-card, .gpa-breakdown { box-shadow: none; }
+  a { color: var(--ink); text-decoration: none; }
+}
 
 @media (max-width: 640px) {
   .student-head { flex-direction: column; align-items: flex-start; }
