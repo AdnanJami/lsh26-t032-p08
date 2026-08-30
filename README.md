@@ -7,11 +7,7 @@ Solution for **LofiStack Hackathon 2026 — P08**
 - **Team:** `Larpcoder`
 - **Team ID:** `LSH26-T032`
 - **Problem:** `P08 — School Result Processing and GPA Engine`
-- **Live application:** <https://example.com>
-- **Demo video:** Optional link, maximum three minutes
-
-> Judges will evaluate only the exact commit SHA entered in the Final Submission Form.
-
+- **Live application:** <https://lsh26-t032-p08.onrender.com/>
 ## Solution summary
 
 A Flask app that grades 60 students across two classes under the school's published GPA rules (R-10 to R-13, R-29), and shows the working, not just the result: every subject on a student's marksheet carries the exact mark, the grade point it produced, and the rule that decided it, so a compulsory failure that cancels a strong average is visible rather than hidden behind a flat "F." A class ledger gives pass rate, grade distribution and the subject failing the most students per class, and an office checklist lists every student whose result was touched by the optional-subject rule, a practical fail, or an absence, with a reason per student. Beyond the four required items, the app also supports uploading a CSV of additional marks (with per-row validation and rejection reasons) and editing an individual student's marks in place, both re-grading through the same rules engine used everywhere else.
