@@ -16,4 +16,4 @@ List every scaffold, template, configuration, asset or file already present befo
 
 ## Declaration
 
-This file was added in the first event-work commit. The team will preserve the repository history until results are announced.
+This file was added in the first event-work commit. The team will preserve the repository history until results are announced.git branch -M main

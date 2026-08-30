@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}Result Register{% endblock %} · Bogura Secondary School</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lora:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="spine">
+  <div class="spine-seal">R</div>
+  <div class="spine-title">
+    <span class="spine-eyebrow">Bogura Secondary School</span>
+    <span class="spine-name">Result Register &amp; GPA Engine</span>
+  </div>
+  <nav class="spine-nav">
+    <a href="{{ url_for('index') }}" class="{{ 'active' if active=='index' else '' }}">Ledger</a>
+    <a href="{{ url_for('checklist') }}" class="{{ 'active' if active=='checklist' else '' }}">Office checklist</a>
+  </nav>
+</div>
+<main class="page">
+  {% block content %}{% endblock %}
+</main>
+<footer class="page-footer">
+  Grading rules applied exactly as published for this problem. Every figure on this page is computed live from the marks below it — nothing is hand-entered.
+</footer>
+</body>
+</html>

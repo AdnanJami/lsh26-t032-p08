@@ -1,0 +1,64 @@
+{
+  "team_id": "LSH26-T032",
+  "problem_id": "P08",
+  "repository_name": "lsh26-t032-p08",
+  "live_url": "<FILL IN — your deployed URL before submission>",
+  "demo_video_url_optional": "",
+  "event_start_code": "LSH26-8490-C900",
+  "repository_created_before_release": false,
+  "pre_event_materials": [],
+  "sample_data": {
+    "loads_published_fixture": false,
+    "method": "generated at process start-up by a seeded random generator (data.py, seed=42), not an uploaded fixture",
+    "reset_instructions": "Restart the Flask process. Data is regenerated identically every start-up from the fixed seed; there is no database or persisted state to clear."
+  },
+  "problem_solving_method": "Split grading into a pure, Flask-free rules engine (grading.py) that evaluates one subject at a time and returns the mark, grade point, and which published rule (R-10/R-11/R-12/R-13/R-29) decided it, so the trace the office sees is generated from the same code path that produced the GPA, not written separately. Marks for 60 students are generated once at start-up (data.py): 8 students are hand-built to hit every edge case named in the problem statement, the remaining 52 are randomised on a fixed seed for reproducibility. app.py evaluates all 60 once at start-up and serves three read-only views: the class ledger, a per-student trace, and the office checking list.",
+  "requirements": {
+    "R1": {
+      "status": "complete",
+      "evidence": "data.py: build_roster_and_students() — 60 students across Class 9A / Class 9B, 6 compulsory subjects + 1 optional per student, 2 subjects (Science, ICT) carry separate theory/practical marks. 8 explicit edge-case students in _edge_case_students(): compulsory fail with strong average (9A-01), practical fail with passing theory (9A-02), optional subject below the point where it helps (9A-03), absence in a compulsory subject (9A-04), plus 4 additional edge cases (optional-only absence, practical-only absence, a perfect A+, and an exact letter-grade boundary)."
+    },
+    "R2": {
+      "status": "complete",
+      "evidence": "grading.py: evaluate_subject() and evaluate_student() — grade point per subject, GPA via the R-13 formula, letter grade via R-10. Rendered per student at the /student/<id> route (app.py) and templates/student.html."
+    },
+    "R3": {
+      "status": "complete",
+      "evidence": "templates/student.html — every subject shows the real mark(s) used, the grade point produced, and the deciding rule (R-11/R-12/Grading scale). When a compulsory failure cancels the result, the uncancelled average is shown alongside the published 0.00/F so the failing subject and the missed average are both visible (see student 9A-01)."
+    },
+    "R4": {
+      "status": "complete",
+      "evidence": "/checklist route (app.py) and templates/checklists.html — three R-29 lists (optional-subject, practical-fail, absent) each with a per-student reason string, built directly from the same evaluate_student() output used for the GPA."
+    }
+  },
+  "team_members": [
+    {
+      "registered_name": "<FILL IN — registered name>",
+      "github_username": "<FILL IN — github username>",
+      "major_contribution": "<FILL IN>",
+      "evidence_paths_or_commits": [
+        "<FILL IN — file paths or commit SHAs>"
+      ]
+    }
+  ],
+  "major_design_decisions": [
+    "GPA is rounded with Decimal + ROUND_HALF_UP to 2dp rather than Python's built-in round(), so boundary GPAs (e.g. exactly 3.50) land on the correct letter grade deterministically rather than depending on binary float rounding.",
+    "The 'uncancelled average' required by R-13 is computed for every student, not only failing ones, so the same code path produces both the published GPA and the audit figure — there is no separate 'what if' calculation that could drift out of sync.",
+    "Absence in only the practical half of a practical subject (theory present, practical blank) is treated as an absence for the whole subject, since R-12 does not split theory/practical explicitly. This is flagged as an interpretive call, not a certainty, in known_limitations below.",
+    "All 60 students are evaluated once at process start-up and held in memory, since this is a read-only judging/demo tool rather than a live data-entry system; there is no need to recompute per request."
+  ],
+  "known_limitations": [
+    "The two bonus features from the problem statement are not implemented: pasting/uploading a marks sheet with per-row rejection reasons, and a printable individual marksheet. Effort was prioritised on the four required items instead, per the problem statement's own guidance to only attempt bonus items once those work.",
+    "Absence in only the practical part of a practical subject (see major_design_decisions) is an interpretive reading of R-12, not an explicitly confirmed one — worth a judge's ruling if it matters to scoring.",
+    "No persistence layer or database; marks live in data.py and are regenerated identically on every restart from a fixed seed. There is no teacher-facing form to enter or correct marks."
+  ],
+  "ai_tools_used": [
+    {
+      "tool": "Claude (Anthropic)",
+      "used_for": "Designed and wrote the grading engine, Flask routes, templates, and synthetic student dataset, including the 8 required edge-case students.",
+      "how_output_was_verified": "Ran the grading engine against all 8 edge-case students and manually checked every compulsory-subject sum, optional bonus, GPA, letter-grade boundary, and checklist membership against R-10/R-11/R-12/R-13/R-29 line by line before accepting the code. Automated route tests (Flask test client) confirm all pages render without error."
+    }
+  ],
+  "licenses_file": "LICENSES.md",
+  "declaration": "The information above is complete and truthful to the best of the team's knowledge."
+}

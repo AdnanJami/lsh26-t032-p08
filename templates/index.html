@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Ledger{% endblock %}
+{% block content %}
+
+<section class="summary-row">
+  {% for cls in summaries %}
+  <div class="summary-card">
+    <h2>{{ cls.class_name }}</h2>
+    <div class="summary-stats">
+      <div class="stat">
+        <span class="stat-value">{{ cls.pass_rate }}%</span>
+        <span class="stat-label">pass rate</span>
+      </div>
+      <div class="stat">
+        <span class="stat-value">{{ cls.count }}</span>
+        <span class="stat-label">students</span>
+      </div>
+      <div class="stat">
+        <span class="stat-value">{{ cls.worst_subject }}</span>
+        <span class="stat-label">failed the most students</span>
+      </div>
+    </div>
+    <div class="grade-distribution">
+      {% for letter, n in cls.distribution %}
+      <div class="grade-bar-row">
+        <span class="grade-bar-label">{{ letter }}</span>
+        <div class="grade-bar-track">
+          <div class="grade-bar-fill" style="width: {{ cls.bar_width(n) }}%"></div>
+        </div>
+        <span class="grade-bar-count">{{ n }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+</section>
+
+{% for cls in classes %}
+<section class="class-block">
+  <h2 class="ledger-heading">{{ cls.name }}</h2>
+  <table class="ledger-table">
+    <thead>
+      <tr>
+        <th>Roll</th>
+        <th>Name</th>
+        <th>GPA</th>
+        <th>Grade</th>
+        <th>Flags</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for s in cls.students %}
+      <tr class="{{ 'row-fail' if s.letter == 'F' else '' }}">
+        <td class="mono">{{ s.student_id }}</td>
+        <td><a href="{{ url_for('student_page', student_id=s.student_id) }}">{{ s.name }}</a></td>
+        <td class="mono">{{ '%.2f'|format(s.gpa) }}</td>
+        <td><span class="grade-pill grade-{{ s.letter|replace('+','plus')|replace('-','minus') }}">{{ s.letter }}</span></td>
+        <td class="flags">
+          {% if s.on_absent_list %}<span class="flag flag-absent">AB</span>{% endif %}
+          {% if s.on_practical_fail_list %}<span class="flag flag-practical">PR</span>{% endif %}
+          {% if s.on_optional_list %}<span class="flag flag-optional">OPT</span>{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endfor %}
+
+{% endblock %}

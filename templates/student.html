@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}{{ s.name }}{% endblock %}
+{% block content %}
+
+<a href="{{ url_for('index') }}" class="back-link">&larr; Back to ledger</a>
+
+<section class="student-head">
+  <div class="student-head-id">
+    <span class="mono">{{ s.student_id }}</span>
+    <h1>{{ s.name }}</h1>
+    <span class="student-class">{{ s.class_name }}</span>
+  </div>
+  <div class="final-stamp {{ 'stamp-fail' if s.letter == 'F' else 'stamp-pass' }}">
+    <span class="final-stamp-gpa mono">{{ '%.2f'|format(s.gpa) }}</span>
+    <span class="final-stamp-letter">{{ s.letter }}</span>
+  </div>
+</section>
+
+{% if s.compulsory_fail %}
+<div class="uncancelled-note">
+  <strong>Result: F.</strong> A compulsory subject failed below, so the published GPA is 0.00 regardless of the average elsewhere (R-13).
+  The uncancelled average — what the GPA would read if that failure were ignored — was
+  <span class="mono">{{ '%.2f'|format(s.raw_gpa) }}</span>. Kept visible here so the office can see how close, or how far, the student actually was.
+</div>
+{% endif %}
+
+<section class="trace">
+  <h2 class="ledger-heading">Per-subject trace</h2>
+  <div class="trace-grid">
+    {% for sub in s.subjects %}
+    <article class="trace-card {{ 'trace-fail' if sub.status in ('FAIL','AB') else '' }}">
+      <div class="trace-card-head">
+        <div>
+          <span class="trace-subject-name">{{ sub.name }}</span>
+          {% if sub.is_optional %}<span class="tag-optional">optional</span>{% endif %}
+          {% if sub.is_practical %}<span class="tag-practical">has practical</span>{% endif %}
+        </div>
+        <div class="rule-stamp {{ 'rule-stamp-fail' if sub.status in ('FAIL','AB') else 'rule-stamp-pass' }}">
+          {{ sub.rule }}
+        </div>
+      </div>
+
+      <div class="trace-marks mono">
+        {% if sub.is_practical %}
+          <span>Theory: {{ sub.theory_mark if sub.theory_mark is not none else 'AB' }}/75</span>
+          <span>Practical: {{ sub.practical_mark if sub.practical_mark is not none else 'AB' }}/25</span>
+          {% if sub.combined_mark is not none %}<span>Combined: {{ sub.combined_mark }}/100</span>{% endif %}
+        {% else %}
+          <span>Mark: {{ sub.single_mark if sub.single_mark is not none else 'AB' }}/100</span>
+        {% endif %}
+        <span class="trace-gp">Grade point: {{ '%.1f'|format(sub.grade_point) }}</span>
+      </div>
+
+      <p class="trace-note">{{ sub.note }}</p>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="gpa-breakdown">
+  <h2 class="ledger-heading">GPA calculation</h2>
+  <p class="mono breakdown-line">
+    ({{ compulsory_gp_list }}) + max(0, {{ '%.1f'|format(s.optional_gp) }} - 2.0)
+    &nbsp;=&nbsp; ({{ '%.1f'|format(compulsory_sum) }} + {{ '%.1f'|format(s.optional_bonus) }}) / 6
+    &nbsp;=&nbsp; {{ '%.2f'|format(s.raw_gpa) }}
+  </p>
+  <p class="breakdown-caption">R-13 — sum of compulsory grade points, plus the optional subject's grade point above 2.0 (never negative), divided by six, capped at 5.00.</p>
+</section>
+
+{% endblock %}

@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Office checklist{% endblock %}
+{% block content %}
+
+<section class="checklist-intro">
+  <h1>Before results go out</h1>
+  <p>Every student below had their result touched by a rule that isn't a plain mark-to-grade lookup — an optional subject, a practical fail, or an absence. A student can appear on more than one list. Verify these by hand; everyone else is a straightforward calculation.</p>
+</section>
+
+{% for list in lists %}
+<section class="check-list-block">
+  <h2 class="ledger-heading">{{ list.title }} <span class="check-count">{{ list.students|length }}</span></h2>
+  <p class="check-list-rule">{{ list.rule_text }}</p>
+  {% if list.students %}
+  <table class="ledger-table">
+    <thead><tr><th>Roll</th><th>Name</th><th>Class</th><th>Why it's here</th></tr></thead>
+    <tbody>
+      {% for s in list.students %}
+      <tr>
+        <td class="mono">{{ s.student_id }}</td>
+        <td><a href="{{ url_for('student_page', student_id=s.student_id) }}">{{ s.name }}</a></td>
+        <td>{{ s.class_name }}</td>
+        <td>{{ s.reason }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="check-list-empty">No students on this list.</p>
+  {% endif %}
+</section>
+{% endfor %}
+
+{% endblock %}
