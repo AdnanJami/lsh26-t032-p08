@@ -1,0 +1,15 @@
+<div class="panel" data-student="{{ s.student_id }}">
+  <div class="panel-bar">
+    <a class="panel-back" href="{{ url_for('ledger', ds_id=ds.id, **view_args) }}" data-close>&larr; List</a>
+    <div class="panel-step" data-step-group hidden>
+      <button type="button" class="btn btn-small" data-step="-1" title="Previous student (↑ or K)" aria-label="Previous student">&uarr;</button>
+      <button type="button" class="btn btn-small" data-step="1" title="Next student (↓ or J)" aria-label="Next student">&darr;</button>
+    </div>
+    <div class="panel-actions">
+      <a class="btn btn-small" href="{{ url_for('student_edit', ds_id=ds.id, sid=s.student_id, **view_args) }}">Edit marks</a>
+      <a class="btn btn-small btn-primary" href="{{ url_for('student_print', ds_id=ds.id, sid=s.student_id) }}" target="_blank" rel="noopener">Printable marksheet</a>
+    </div>
+    <a class="panel-close" href="{{ url_for('ledger', ds_id=ds.id, **view_args) }}" data-close aria-label="Close marksheet" title="Close (Esc)">&times;</a>
+  </div>
+  {% include "_marksheet.html" %}
+</div>

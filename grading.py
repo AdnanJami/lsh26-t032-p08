@@ -80,13 +80,16 @@ def evaluate_subject(subject: dict, entry: dict) -> SubjectResult:
         res.practical_mark = practical
 
         if theory is None or practical is None:
-            missing = "theory" if theory is None else "practical"
+            if theory is None and practical is None:
+                missing = "the subject"
+            else:
+                missing = "the theory part" if theory is None else "the practical part"
             res.status = "AB"
             res.grade_point = 0.0
             res.rule = "R-12"
             res.note = (
-                f"Absent in the {missing} part. Recorded as AB, subject grade "
-                f"point 0."
+                f"Absent in {missing}. Recorded as AB, subject grade point 0 "
+                f"(not the same as a mark of 0)."
             )
             return res
 
@@ -102,9 +105,7 @@ def evaluate_subject(subject: dict, entry: dict) -> SubjectResult:
                 failed_parts.append(f"practical {practical}/{PRACTICAL_MAX} (pass {PRACTICAL_PASS})")
             res.note = (
                 "Failed " + " and ".join(failed_parts) +
-                " — theory and practical must each individually pass, so the "
-                "subject is a fail regardless of the combined mark "
-                f"({res.combined_mark}/100)."
+                "; each part must pass on its own."
             )
             return res
 
@@ -112,8 +113,9 @@ def evaluate_subject(subject: dict, entry: dict) -> SubjectResult:
         res.grade_point = mark_to_grade_point(res.combined_mark)
         res.rule = "Grading scale"
         res.note = (
-            f"Theory {theory}/{THEORY_MAX} + practical {practical}/{PRACTICAL_MAX} "
-            f"= {res.combined_mark}/100 -> grade point {res.grade_point:.1f}."
+            f"Both parts pass ({theory} ≥ {THEORY_PASS}, {practical} ≥ "
+            f"{PRACTICAL_PASS}); {res.combined_mark}/100 → GP "
+            f"{res.grade_point:.1f}."
         )
         return res
 
@@ -123,7 +125,10 @@ def evaluate_subject(subject: dict, entry: dict) -> SubjectResult:
         res.status = "AB"
         res.grade_point = 0.0
         res.rule = "R-12"
-        res.note = "Absent. Recorded as AB, subject grade point 0."
+        res.note = (
+            "Absent. Recorded as AB, subject grade point 0 (not the same as a "
+            "mark of 0)."
+        )
         return res
 
     res.combined_mark = mark
@@ -131,9 +136,9 @@ def evaluate_subject(subject: dict, entry: dict) -> SubjectResult:
     res.status = "OK" if res.grade_point > 0 else "FAIL"
     res.rule = "Grading scale"
     if res.grade_point == 0:
-        res.note = f"Mark {mark}/100 is below 33 — fails the subject outright."
+        res.note = f"Mark {mark}/100 is below 33 — fails the subject."
     else:
-        res.note = f"Mark {mark}/100 -> grade point {res.grade_point:.1f}."
+        res.note = f"Mark {mark}/100 → GP {res.grade_point:.1f}."
     return res
 
 
@@ -152,6 +157,27 @@ class StudentResult:
     on_optional_list: bool = False
     on_practical_fail_list: bool = False
     on_absent_list: bool = False
+
+    @property
+    def optional_subject(self):
+        return next((s for s in self.subjects if s.is_optional), None)
+
+    @property
+    def compulsory_subjects(self):
+        return [s for s in self.subjects if not s.is_optional]
+
+    @property
+    def failing_subjects(self):
+        """Compulsory subjects that cancelled the result (R-13)."""
+        return [s for s in self.compulsory_subjects if s.status in ("FAIL", "AB")]
+
+    @property
+    def flags(self):
+        return [name for name, on in (
+            ("optional", self.on_optional_list),
+            ("practical", self.on_practical_fail_list),
+            ("absent", self.on_absent_list),
+        ) if on]
 
 
 def evaluate_student(student_id: str, name: str, class_name: str,
@@ -183,6 +209,11 @@ def evaluate_student(student_id: str, name: str, class_name: str,
     result.optional_bonus = max(0.0, result.optional_gp - 2.0)
     if result.optional_gp <= 2.0:
         result.on_optional_list = True
+    if optional_result is not None:
+        optional_result.note += (
+            f" Optional (R-13): adds max(0, {result.optional_gp:.1f} - 2.0)"
+            f" = {result.optional_bonus:.1f} to the sum."
+        )
 
     raw = (sum(compulsory_gps) + result.optional_bonus) / 6.0
     raw = min(raw, 5.00)

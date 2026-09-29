@@ -2,67 +2,66 @@
   "team_id": "LSH26-T032",
   "problem_id": "P08",
   "repository_name": "lsh26-t032-p08",
-  "live_url": "<FILL IN — your deployed URL before submission>",
+  "live_url": "https://lsh26-t032-p08.onrender.com/",
   "demo_video_url_optional": "",
   "event_start_code": "LSH26-8490-C900",
   "repository_created_before_release": false,
   "pre_event_materials": [],
   "sample_data": {
-    "loads_published_fixture": false,
-    "method": "generated at process start-up by a seeded random generator (data.py, seed=42), not an uploaded fixture",
-    "reset_instructions": "Restart the Flask process. Data is regenerated identically every start-up from the fixed seed; there is no database or persisted state to clear."
+    "loads_published_fixture": true,
+    "method": "P08_school_results_public.json (the organisers' 25 published cases, 1,765 students) is loaded at start-up, one dataset per case. A 60-student demo dataset in the same format is also generated at start-up from a fixed seed (data.py, seed=42). Further cases or students can be uploaded as JSON on /upload.",
+    "reset_instructions": "Restart the Flask process. Everything is held in memory and rebuilt identically on start-up; there is no database or persisted state to clear."
   },
-  "problem_solving_method": "Split grading into a pure, Flask-free rules engine (grading.py) that evaluates one subject at a time and returns the mark, grade point, and which published rule (R-10/R-11/R-12/R-13/R-29) decided it, so the trace the office sees is generated from the same code path that produced the GPA, not written separately. Marks for 60 students are generated once at start-up (data.py): 8 students are hand-built to hit every edge case named in the problem statement, the remaining 52 are randomised on a fixed seed for reproducibility. app.py evaluates all 60 once at start-up and serves three read-only views: the class ledger, a per-student trace, and the office checking list.",
+  "problem_solving_method": "A pure, Flask-free rules engine (grading.py) grades one subject at a time and returns the mark, the grade point and the published rule (R-10/R-11/R-12/R-13/R-29) that decided it, so the trace, the GPA and the checking-list membership all come from one code path. Data uses the organisers' case format throughout (6 compulsory subjects with Physics/Chemistry/Biology practicals, one optional subject per student from HMT/AGR/REL); datasets.py holds one dataset per case and upload.py validates JSON in that format with every rejection reason. app.py serves a searchable, sortable ledger whose student marksheet opens in a side panel, the office checklist, uploads, edits, a printable marksheet and a JSON export. tests/test_app.py checks every demo and published-case student against an independent implementation of the rules.",
   "requirements": {
     "R1": {
       "status": "complete",
-      "evidence": "data.py: build_roster_and_students() — 60 students across Class 9A / Class 9B, 6 compulsory subjects + 1 optional per student, 2 subjects (Science, ICT) carry separate theory/practical marks. 8 explicit edge-case students in _edge_case_students(): compulsory fail with strong average (9A-01), practical fail with passing theory (9A-02), optional subject below the point where it helps (9A-03), absence in a compulsory subject (9A-04), plus 4 additional edge cases (optional-only absence, practical-only absence, a perfect A+, and an exact letter-grade boundary)."
+      "evidence": "data.py: build_demo_students() — 60 students, 30 in Class 9 and 30 in Class 10; six compulsory subjects (BAN, ENG, MAT, PHY, CHE, BIO) plus one optional per student (HMT, AGR or REL); PHY/CHE/BIO/HMT/AGR carry separate theory and practical marks. 11 hand-built edge cases (S001–S011): compulsory fail with a strong average, practical fail with passing theory, optional at 2.0, absent in a compulsory subject, absent in the optional only, theory fail with a strong practical, GPA cap, exact A- boundary, failed optional, a mark of 0 versus AB, optional lifting A- to A."
     },
     "R2": {
       "status": "complete",
-      "evidence": "grading.py: evaluate_subject() and evaluate_student() — grade point per subject, GPA via the R-13 formula, letter grade via R-10. Rendered per student at the /student/<id> route (app.py) and templates/student.html."
+      "evidence": "grading.py: evaluate_subject() and evaluate_student() — grade point per subject, GPA via R-13 (capped at 5.00, 2dp, ROUND_HALF_UP), letter via R-10. Shown in the ledger and every marksheet; exported by /d/<dataset>/results.json. Verified against an independent implementation for all 1,765 published-case students (tests/test_app.py)."
     },
     "R3": {
       "status": "complete",
-      "evidence": "templates/student.html — every subject shows the real mark(s) used, the grade point produced, and the deciding rule (R-11/R-12/Grading scale). When a compulsory failure cancels the result, the uncancelled average is shown alongside the published 0.00/F so the failing subject and the missed average are both visible (see student 9A-01)."
+      "evidence": "templates/_marksheet.html — every subject shows the real theory/practical/combined or single mark, the grade point, the deciding rule and a note computed from that student's numbers. A compulsory failure names the failing subject(s) with their marks and keeps the uncancelled average visible (see S001)."
     },
     "R4": {
       "status": "complete",
-      "evidence": "/checklist route (app.py) and templates/checklists.html — three R-29 lists (optional-subject, practical-fail, absent) each with a per-student reason string, built directly from the same evaluate_student() output used for the GPA."
+      "evidence": "/d/<dataset>/checklist (app.py, templates/checklists.html) — the three R-29 lists (optional ≤ 2.0 including absent optional, practical below 8 in any subject, AB in any subject), each with a per-student reason quoting the marks; built from the same StudentResult as the GPA. The ledger can also be filtered to each list."
     }
   },
   "team_members": [
     {
       "registered_name": "Abdullah Mohammad Muntasir Adnan Jami",
       "github_username": "AdnanJami",
-      "major_contribution": "Made the grading engine, Flask routes, templates, and synthetic student dataset, including the 4 required edge-case students. Designed the CSV upload format and validation, and wrote the README and evaluation-manifest.json. ",
+      "major_contribution": "Grading engine, Flask routes, templates, the synthetic dataset with its 11 edge-case students, the upload format and validation, README and evaluation-manifest.json.",
       "evidence_paths_or_commits": [
+        "e31a168",
         "bec9701283e121412f706135ae2b535c0ae76b7d"
       ]
     }
   ],
   "major_design_decisions": [
-        "Kept all graded results and raw marks in server-side in-memory dicts (RESULTS, RAW_MARKS) rather than a database, since the roster is small, judging is a single-session activity, and it keeps the whole system inspectable as three plain Python modules with no migrations or ORM.",
-    "Derived the CSV upload format (required columns, per-column value ranges) programmatically from the live subject roster instead of hardcoding it, so the upload page's documented format and the parser's validation can never fall out of sync if the roster changes.",
-    "AB (absent) is only ever accepted as the literal text 'AB' — an empty cell is always rejected rather than silently treated as an absence — to stop a blank spreadsheet cell from accidentally failing a student.",
-    "Every SubjectResult carries the rule code (e.g. R-11, R-12, R-13) and a plain-language note explaining exactly why a mark produced the grade it did, so the individual marksheet doubles as an audit trail rather than just a final number.",
-    "GPA is rounded with Decimal + ROUND_HALF_UP to 2dp rather than Python's built-in round(), so boundary GPAs (e.g. exactly 3.50) land on the correct letter grade deterministically rather than depending on binary float rounding.",
-    "The 'uncancelled average' required by R-13 is computed for every student, not only failing ones, so the same code path produces both the published GPA and the audit figure — there is no separate 'what if' calculation that could drift out of sync.",
-    "Absence in only the practical half of a practical subject (theory present, practical blank) is treated as an absence for the whole subject, since R-12 does not split theory/practical explicitly. This is flagged as an interpretive call, not a certainty, in known_limitations below.",
-    "All 60 students are evaluated once at process start-up and held in memory, since this is a read-only judging/demo tool rather than a live data-entry system; there is no need to recompute per request."
+    "Adopted the organisers' case format as the only data model, so the demo, uploaded cases and the published file all go through one Dataset -> evaluate_student path.",
+    "One dataset per case, because student ids repeat between published cases; each keeps its own ledger and checklist.",
+    "The importer reports every reason a record is rejected, and one bad record never blocks the rest; the edit form goes through the same validator.",
+    "'AB' must be explicit: a blank value is rejected rather than treated as absent or 0, and AB is graded and labelled differently from a mark of 0.",
+    "GPA is rounded with Decimal + ROUND_HALF_UP so boundary GPAs land on the right letter grade.",
+    "The uncancelled average required by R-13 is computed for every student by the same code path as the published GPA.",
+    "The ledger is progressive enhancement: the server renders search, filter, sort and the open marksheet panel from the URL, and static/app.js makes it instant without page loads."
   ],
   "known_limitations": [
-    "Absence in only the practical part of a practical subject (see major_design_decisions) is an interpretive reading of R-12, not an explicitly confirmed one — worth a judge's ruling if it matters to scoring.",
-    "No persistence layer or database; marks live in data.py and are regenerated identically on every restart from a fixed seed. There is no teacher-facing form to enter or correct marks.",
-    "No authentication on /upload or /student/<id>/edit — anyone with the URL can add or change marks; acceptable for a single-judge/single-session demo but not production-ready.",
-    "CSV parsing expects a well-formed header row with the exact expected column names (case/space/hyphen-insensitive); it doesn't attempt to auto-detect delimiters or alternate encodings beyond UTF-8/UTF-8-BOM.",
-    "app.secret_key is a hardcoded development placeholder, used only to enable flash messages — not suitable for a real deployment."
+    "Absence in only one part of a practical subject is treated as absence for the whole subject (R-12 does not split theory/practical); the published cases only use whole-subject AB.",
+    "No persistence: uploads and edits live in memory and are lost on restart.",
+    "No authentication on upload or edit.",
+    "app.secret_key falls back to a development placeholder when SECRET_KEY is not set; it is only used for flash messages."
   ],
   "ai_tools_used": [
     {
       "tool": "Claude (Anthropic)",
-      "used_for": "Designed and wrote the grading engine, Flask routes, templates, and synthetic student dataset, including the 8 required edge-case students.",
-      "how_output_was_verified": "Ran the grading engine against all 8 edge-case students and manually checked every compulsory-subject sum, optional bonus, GPA, letter-grade boundary, and checklist membership against R-10/R-11/R-12/R-13/R-29 line by line before accepting the code. Automated route tests (Flask test client) confirm all pages render without error."
+      "used_for": "Helped write the grading engine, routes, templates, dataset, JSON importer and the ledger's search/sort/side-panel UI.",
+      "how_output_was_verified": "tests/test_app.py compares every demo student and all 1,765 published-case students against an independent implementation of R-10–R-13 and R-29, checks each edge case, every importer rejection reason and every route; the running app was also driven in a browser (search, sort, panel, keyboard navigation, narrow screens)."
     }
   ],
   "licenses_file": "LICENSES.md",

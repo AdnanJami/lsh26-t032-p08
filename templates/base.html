@@ -9,24 +9,41 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
+<a class="skip-link" href="#main">Skip to content</a>
 {% block nav %}
-<div class="spine no-print">
-  <div class="spine-seal">R</div>
+{% set nav_ds = ds if ds is defined and ds else datasets[0] %}
+<header class="spine no-print">
+  <div class="spine-seal" aria-hidden="true">R</div>
   <div class="spine-title">
     <span class="spine-eyebrow">Bogura Secondary School</span>
     <span class="spine-name">Result Register &amp; GPA Engine</span>
   </div>
-  <nav class="spine-nav">
-    <a href="{{ url_for('index') }}" class="{{ 'active' if active=='index' else '' }}">Ledger</a>
-    <a href="{{ url_for('checklist') }}" class="{{ 'active' if active=='checklist' else '' }}">Office checklist</a>
-    <a href="{{ url_for('upload') }}" class="{{ 'active' if active=='upload' else '' }}">Upload marks</a>
+  <nav class="spine-nav" aria-label="Main">
+    <a href="{{ url_for('ledger', ds_id=nav_ds.id) }}" class="{{ 'active' if active=='ledger' else '' }}">Ledger</a>
+    <a href="{{ url_for('checklist', ds_id=nav_ds.id) }}" class="{{ 'active' if active=='checklist' else '' }}">Office checklist</a>
+    <a href="{{ url_for('upload', target=nav_ds.id) }}" class="{{ 'active' if active=='upload' else '' }}">Upload marks</a>
   </nav>
+</header>
+{% if active in ('ledger', 'checklist') and ds is defined and ds %}
+<div class="dataset-bar no-print">
+  <form class="dataset-form" method="get" action="{{ url_for('go') }}">
+    <input type="hidden" name="page" value="{{ active }}">
+    <label for="dataset-select">Dataset</label>
+    <select id="dataset-select" name="ds" data-autosubmit>
+      {% for d in datasets %}
+      <option value="{{ d.id }}" {{ 'selected' if d.id == ds.id else '' }}>{{ d.title }} ({{ d|length }})</option>
+      {% endfor %}
+    </select>
+    <noscript><button type="submit" class="btn btn-small">Open</button></noscript>
+  </form>
+  <p class="dataset-source">{{ ds.source }}</p>
 </div>
+{% endif %}
 {% endblock %}
-<main class="page">
+<main class="page {% block page_class %}{% endblock %}" id="main">
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
-    <div class="flash-stack no-print">
+    <div class="flash-stack no-print" role="status">
       {% for category, message in messages %}
       <div class="flash flash-{{ category }}">{{ message }}</div>
       {% endfor %}
@@ -37,7 +54,8 @@
   {% block content %}{% endblock %}
 </main>
 <footer class="page-footer no-print">
-  Grading rules applied exactly as published for this problem. Every figure on this page is computed live from the marks below it — nothing is hand-entered.
+  Grading rules applied exactly as published for P08 (R-10 to R-13, R-29). Every figure is computed live from the marks shown — nothing is hand-entered.
 </footer>
+<script src="{{ url_for('static', filename='app.js') }}" defer></script>
 </body>
 </html>

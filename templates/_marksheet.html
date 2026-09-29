@@ -1,0 +1,71 @@
+<section class="student-head">
+  <div class="student-head-id">
+    <span class="mono">{{ s.student_id }}</span>
+    <h1 id="marksheet-title" tabindex="-1">{{ s.name }}</h1>
+    <span class="student-class">{{ s.class_name }}{% if s.optional_subject %} · optional: {{ s.optional_subject.name }}{% endif %}</span>
+  </div>
+  <div class="final-stamp {{ 'stamp-fail' if s.letter == 'F' else 'stamp-pass' }}" aria-label="GPA {{ '%.2f'|format(s.gpa) }}, grade {{ s.letter }}">
+    <span class="final-stamp-gpa mono">{{ '%.2f'|format(s.gpa) }}</span>
+    <span class="final-stamp-letter">{{ s.letter }}</span>
+  </div>
+</section>
+
+{% if s.compulsory_fail %}
+<div class="uncancelled-note">
+  <p><strong>Result: F.</strong> Failed compulsory
+    {{ 'subject' if s.failing_subjects|length == 1 else 'subjects' }}:
+    {% for sub in s.failing_subjects %}<strong>{{ sub.name }}</strong>
+      ({% if sub.status == 'AB' %}absent, AB{% elif sub.is_practical %}theory {{ sub.theory_mark }}/{{ THEORY_MAX }}, practical {{ sub.practical_mark }}/{{ PRACTICAL_MAX }}{% else %}{{ sub.single_mark }}/100{% endif %}){{ ', ' if not loop.last else '' }}{% endfor %}.
+    Any compulsory fail makes the published GPA 0.00 (R-13); the uncancelled average would be
+    <span class="mono">{{ '%.2f'|format(s.raw_gpa) }}</span>.</p>
+</div>
+{% endif %}
+
+<section class="trace" aria-labelledby="trace-heading">
+  <h2 class="section-heading" id="trace-heading">Per-subject trace</h2>
+  <table class="trace-table">
+    <thead>
+      <tr><th scope="col">Subject</th><th scope="col" title="Out of 100; practical subjects: theory /{{ THEORY_MAX }} + practical /{{ PRACTICAL_MAX }}">Mark used <span class="th-sub">/100 · T/{{ THEORY_MAX }} + P/{{ PRACTICAL_MAX }}</span></th><th scope="col" class="num">GP</th><th scope="col">Rule</th><th scope="col">Working</th></tr>
+    </thead>
+    <tbody>
+      {% for sub in s.subjects %}
+      <tr class="{{ 'trace-fail' if sub.status == 'FAIL' else '' }} {{ 'trace-absent' if sub.status == 'AB' else '' }}">
+        <th scope="row" class="trace-subject">
+          <span class="trace-subject-name">{{ sub.name }}</span>
+          <span class="trace-tags">
+            {%- if sub.is_optional %}<span class="tag">optional</span>{% endif -%}
+            {%- if sub.status == 'AB' %}<span class="tag tag-ab">absent</span>{% elif sub.status == 'FAIL' %}<span class="tag tag-fail">fail</span>{% endif -%}
+          </span>
+        </th>
+        <td class="trace-marks mono">
+          {% if sub.is_practical %}
+            <span title="Theory, out of {{ THEORY_MAX }}">T {{ sub.theory_mark if sub.theory_mark is not none else 'AB' }}</span>
+            <span title="Practical, out of {{ PRACTICAL_MAX }}">+ P {{ sub.practical_mark if sub.practical_mark is not none else 'AB' }}</span>
+            {% if sub.combined_mark is not none %}<span class="trace-combined">= {{ sub.combined_mark }}</span>{% endif %}
+          {% else %}
+            <span>{{ sub.single_mark if sub.single_mark is not none else 'AB' }}</span>
+          {% endif %}
+        </td>
+        <td class="trace-gp mono num">{{ '%.1f'|format(sub.grade_point) }}</td>
+        <td>{% if sub.rule == 'Grading scale' %}<span class="rule-pill" title="Grading scale: 80+ = 5.0, 70–79 = 4.0, 60–69 = 3.5, 50–59 = 3.0, 40–49 = 2.0, 33–39 = 1.0, below 33 = 0 (fail)">Scale</span>{% else %}<span class="rule-pill {{ 'rule-pill-fail' if sub.status in ('FAIL','AB') else '' }}">{{ sub.rule }}</span>{% endif %}</td>
+        <td class="trace-note">{{ sub.note }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<section class="gpa-breakdown" aria-labelledby="gpa-heading">
+  <h2 class="section-heading" id="gpa-heading">GPA calculation</h2>
+  <p class="mono breakdown-line">
+    ({{ compulsory_gp_list }}) + max(0, {{ '%.1f'|format(s.optional_gp) }} − 2.0)
+    = ({{ '%.1f'|format(compulsory_sum) }} + {{ '%.1f'|format(s.optional_bonus) }}) / 6
+    = {{ '%.2f'|format((compulsory_sum + s.optional_bonus) / 6) }}{% if (compulsory_sum + s.optional_bonus) / 6 > 5 %} → capped at 5.00{% endif %}
+  </p>
+  {% if s.compulsory_fail %}
+  <p class="mono breakdown-line breakdown-fail">Compulsory fail → published GPA 0.00, grade F (uncancelled average {{ '%.2f'|format(s.raw_gpa) }})</p>
+  {% else %}
+  <p class="mono breakdown-line">GPA {{ '%.2f'|format(s.gpa) }} → grade {{ s.letter }} (R-10)</p>
+  {% endif %}
+  <p class="breakdown-caption">R-13: six compulsory grade points + the optional's grade point above 2.0 (never negative), ÷ 6, capped at 5.00, 2 decimals.</p>
+</section>

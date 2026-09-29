@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% block title %}{% if selected %}{{ selected.name }} · {% endif %}Ledger{% endblock %}
+{% block content %}
+
+<section class="summary-row" aria-label="Class summaries">
+  {% for cls in summaries %}
+  <div class="summary-card">
+    <h2>{{ cls.class_name }}</h2>
+    <div class="summary-stats">
+      <div class="stat">
+        <span class="stat-value">{{ cls.pass_rate }}%</span>
+        <span class="stat-label">pass rate ({{ cls.passed }}/{{ cls.count }})</span>
+      </div>
+      <div class="stat">
+        <span class="stat-value">{{ cls.worst_subject }}</span>
+        <span class="stat-label">failed the most students{% if cls.worst_count %} ({{ cls.worst_count }}){% endif %}</span>
+      </div>
+    </div>
+    <div class="grade-distribution" aria-label="Grade distribution">
+      {% for letter, n in cls.distribution %}
+      <div class="grade-bar-row">
+        <span class="grade-bar-label">{{ letter }}</span>
+        <div class="grade-bar-track"><div class="grade-bar-fill {{ 'fill-fail' if letter == 'F' else '' }}" style="width: {{ cls.bar_width(n) }}%"></div></div>
+        <span class="grade-bar-count">{{ n }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% else %}
+  <p class="empty-note">This dataset has no students yet. <a href="{{ url_for('upload', target=ds.id) }}">Upload marks</a> to add some.</p>
+  {% endfor %}
+</section>
+
+<section class="workspace {{ 'has-panel' if selected else '' }}" id="workspace" aria-label="Students">
+  <div class="list-pane">
+    <form class="toolbar" id="list-controls" method="get" action="{{ url_for('ledger', ds_id=ds.id) }}" role="search">
+      <div class="search">
+        <label for="search-input" class="visually-hidden">Search students by name or roll</label>
+        <svg class="search-icon" viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M13 13l4.5 4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <input type="search" id="search-input" name="q" value="{{ view.q }}" placeholder="Search name or roll" autocomplete="off" spellcheck="false">
+        <kbd class="search-hint" aria-hidden="true">/</kbd>
+      </div>
+      <div class="controls">
+        <label class="control">
+          <span>Class</span>
+          <select name="cls">
+            <option value="">All classes</option>
+            {% for c in classes %}<option value="{{ c }}" {{ 'selected' if view.cls == c else '' }}>{{ c }}</option>{% endfor %}
+          </select>
+        </label>
+        <label class="control">
+          <span>Show</span>
+          <select name="result">
+            {% for key, label in result_filters %}<option value="{{ key }}" {{ 'selected' if view.result == key else '' }}>{{ label }}</option>{% endfor %}
+          </select>
+        </label>
+        <label class="control">
+          <span>Sort by</span>
+          <select name="sort">
+            {% for key, label in sorts %}<option value="{{ key }}" {{ 'selected' if view.sort == key else '' }}>{{ label }}</option>{% endfor %}
+          </select>
+        </label>
+        <noscript><button type="submit" class="btn btn-small">Apply</button></noscript>
+      </div>
+    </form>
+
+    <div class="list-meta">
+      <p class="list-count" id="list-count" aria-live="polite">Showing {{ visible_count }} of {{ rows|length }} students</p>
+      <a class="list-export" href="{{ url_for('results_json', ds_id=ds.id) }}">Export results (JSON)</a>
+    </div>
+
+    <div class="table-scroll">
+      <table class="ledger-table roster-table" id="roster">
+        <thead>
+          <tr>
+            <th class="col-roll" scope="col">Roll</th>
+            <th class="col-name" scope="col">Name</th>
+            <th class="col-class" scope="col">Class</th>
+            <th class="col-gpa" scope="col">GPA</th>
+            <th class="col-grade" scope="col">Grade</th>
+            <th class="col-flags" scope="col"><abbr title="Checking lists: AB absent, PR practical fail, OPT optional ≤ 2.0">Lists</abbr></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r, visible in rows %}
+          {% set is_sel = selected and selected.student_id == r.student_id %}
+          <tr class="{{ 'row-fail' if r.letter == 'F' else '' }} {{ 'is-selected' if is_sel else '' }}"
+              data-id="{{ r.student_id }}"
+              data-search="{{ (r.student_id ~ ' ' ~ r.name)|lower }}"
+              data-class="{{ r.class_name }}"
+              data-letter="{{ r.letter }}"
+              data-flags="{{ r.flags|join(' ') }}"
+              {% for key, _ in sorts %}data-rank-{{ key|replace('_', '-') }}="{{ ranks[key][r.student_id] }}" {% endfor %}
+              {{ 'aria-current=true' if is_sel else '' }}
+              {{ 'hidden' if not visible else '' }}>
+            <td class="mono col-roll">{{ r.student_id }}</td>
+            <td class="col-name"><a class="student-link" href="{{ url_for('student_view', ds_id=ds.id, sid=r.student_id, **view_args) }}">{{ r.name }}</a></td>
+            <td class="col-class">{{ r.class_name }}</td>
+            <td class="mono col-gpa">{{ '%.2f'|format(r.gpa) }}{% if r.compulsory_fail %}<span class="raw-hint" title="Uncancelled average (R-13)">avg {{ '%.2f'|format(r.raw_gpa) }}</span>{% endif %}</td>
+            <td class="col-grade"><span class="grade-pill grade-{{ r.letter|replace('+','plus')|replace('-','minus') }}">{{ r.letter }}</span></td>
+            <td class="col-flags">
+              <div class="flags">
+                {% if r.on_absent_list %}<span class="flag flag-absent" title="Absent in a subject">AB</span>{% endif %}
+                {% if r.on_practical_fail_list %}<span class="flag flag-practical" title="Practical part below 8">PR</span>{% endif %}
+                {% if r.on_optional_list %}<span class="flag flag-optional" title="Optional grade point 2.0 or below">OPT</span>{% endif %}
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="list-empty" id="list-empty" {{ 'hidden' if visible_count else '' }}>
+      <p>No students match these filters.</p>
+      <a class="btn btn-small" href="{{ url_for('ledger', ds_id=ds.id) }}" id="clear-filters">Clear search and filters</a>
+    </div>
+  </div>
+
+  <aside class="detail-pane" id="detail-pane" aria-label="Student marksheet" tabindex="-1" {{ '' if selected else 'hidden' }}>
+    {% if selected %}{% include "_panel.html" %}{% endif %}
+  </aside>
+</section>
+
+{% endblock %}

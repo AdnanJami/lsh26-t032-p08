@@ -2,62 +2,70 @@
 {% block title %}Edit {{ s.name }}{% endblock %}
 {% block content %}
 
-<a href="{{ url_for('student_page', student_id=s.student_id) }}" class="back-link">&larr; Back to marksheet</a>
+<a href="{{ url_for('student_view', ds_id=ds.id, sid=s.student_id, **view_args) }}" class="back-link">&larr; Back to the marksheet</a>
+<h1 class="page-title">Edit marks — {{ s.name }} <span class="mono page-title-id">{{ s.student_id }}</span></h1>
 
-<h1 style="font-family:var(--font-display);color:var(--paper);margin:0.4rem 0 1rem;">Edit marks — {{ s.name }}</h1>
+{% macro val(key, fallback) -%}
+{%- if form -%}{{ form.get(key, '') }}{%- else -%}{{ fallback }}{%- endif -%}
+{%- endmacro %}
 
 <section class="ledger-card">
-  <form method="post" class="edit-form">
+  <form method="post" class="edit-form" action="{{ url_for('student_edit', ds_id=ds.id, sid=s.student_id, **view_args) }}" novalidate>
     <div class="edit-grid">
       <label class="field">
         <span>Name</span>
-        <input type="text" name="name" value="{{ form.name if form else s.name }}">
+        <input type="text" name="name" value="{{ val('name', record.name) }}" required>
       </label>
       <label class="field">
         <span>Class</span>
-        <input type="text" name="class_name" value="{{ form.class_name if form else s.class_name }}">
+        <input type="text" name="class" value="{{ val('class', record['class']) }}" required>
+      </label>
+      <label class="field">
+        <span>Optional subject</span>
+        <select name="optional" id="optional-select">
+          {% set chosen = form.get('optional') if form else record.optional %}
+          {% for code in ds.optional_choices %}
+          <option value="{{ code }}" {{ 'selected' if code == chosen else '' }}>{{ ds.subject_name(code) }} ({{ code }})</option>
+          {% endfor %}
+        </select>
       </label>
     </div>
 
-    <table class="ledger-table">
-      <thead><tr><th>Subject</th><th>Mark(s)</th><th>Range</th></tr></thead>
+    <p class="hint">Enter whole numbers, or <span class="mono">AB</span> for absent. A blank box is not accepted — it would be ambiguous between absent and zero.</p>
+
+    <div class="table-scroll">
+    <table class="ledger-table edit-table">
+      <thead><tr><th scope="col">Subject</th><th scope="col">Mark(s)</th><th scope="col">Allowed</th></tr></thead>
       <tbody>
-        {% for subject in subjects %}
-        {% set code = subject.code %}
-        {% set entry = marks[code] %}
-        <tr>
-          <td>{{ subject.name }}{% if subject.optional %} <span class="tag">optional</span>{% endif %}</td>
+        {% for code in ds.compulsory + ds.optional_choices %}
+        {% set subject = ds.subject_by_code[code] %}
+        {% set is_opt = code in ds.optional_choices %}
+        {% set current = record.marks.get(code) if record.marks and code in record.marks else '' %}
+        <tr {% if is_opt %}data-optional-row="{{ code }}"{% endif %}>
+          <th scope="row">{{ subject.name }} {% if is_opt %}<span class="tag">optional</span>{% endif %}</th>
           <td>
             {% if subject.practical %}
-              <label class="inline-field">
-                theory
-                <input type="text" name="{{ code }}_theory"
-                       value="{{ form[code + '_theory'] if form else (entry.theory if entry.theory is not none else 'AB') }}">
-              </label>
-              <label class="inline-field">
-                practical
-                <input type="text" name="{{ code }}_practical"
-                       value="{{ form[code + '_practical'] if form else (entry.practical if entry.practical is not none else 'AB') }}">
-              </label>
+              {% set t = current.theory if current is mapping else current %}
+              {% set p = current.practical if current is mapping else current %}
+              <label class="inline-field">theory
+                <input type="text" inputmode="numeric" name="{{ code }}_theory" value="{{ val(code ~ '_theory', t) }}" aria-label="{{ subject.name }} theory"></label>
+              <label class="inline-field">practical
+                <input type="text" inputmode="numeric" name="{{ code }}_practical" value="{{ val(code ~ '_practical', p) }}" aria-label="{{ subject.name }} practical"></label>
             {% else %}
-              <input type="text" name="{{ code }}"
-                     value="{{ form[code] if form else (entry.mark if entry.mark is not none else 'AB') }}">
+              <input class="mark-input" type="text" inputmode="numeric" name="{{ code }}" value="{{ val(code, current) }}" aria-label="{{ subject.name }} mark">
             {% endif %}
           </td>
-          <td class="hint">
-            {% if subject.practical %}
-              0&ndash;75 / 0&ndash;25, or AB
-            {% else %}
-              0&ndash;100, or AB
-            {% endif %}
-          </td>
+          <td class="hint">{% if subject.practical %}0–{{ THEORY_MAX }} / 0–{{ PRACTICAL_MAX }}{% else %}0–100{% endif %}, or AB</td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
+    </div>
+    <p class="hint">Only the chosen optional subject is saved; the other optional rows are ignored.</p>
 
-    <div style="margin-top:1rem;">
-      <button type="submit" class="btn btn-primary">Save changes</button>
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">Save and re-grade</button>
+      <a class="btn" href="{{ url_for('student_view', ds_id=ds.id, sid=s.student_id, **view_args) }}">Cancel</a>
     </div>
   </form>
 </section>
